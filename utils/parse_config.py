@@ -28,11 +28,9 @@ def parse_data_config(path: str) -> Dict[str, str]:
     options['gpus'] = '0,1,2,3'
     options['num_workers'] = '10'
     with open(path, 'r') as f:
-        lines = f.readlines()
+        lines = f.read().split('\n')
+    lines = [x.rstrip().lstrip() for x in lines if x and not x.startswith('#')]
     for line in lines:
-        line = line.strip()
-        if line == '' or line.startswith('#'):
-            continue
         key, value = line.split('=')
         options[key.strip()] = value.strip()
     return options
