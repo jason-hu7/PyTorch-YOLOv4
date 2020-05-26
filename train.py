@@ -22,6 +22,10 @@ from torchvision import transforms
 from torch.autograd import Variable
 import torch.optim as optim
 
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=100, help="number of epochs")
@@ -41,8 +45,6 @@ if __name__ == "__main__":
 
     logger = Logger("logs")
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     os.makedirs("output", exist_ok=True)
     os.makedirs("checkpoints", exist_ok=True)
 
@@ -53,7 +55,7 @@ if __name__ == "__main__":
     class_names = load_classes(data_config["names"])
 
     # Initiate model
-    model = Darknet(opt.model_def).to(device)
+    model = Darknet(opt.model_def).to(DEVICE)
     model.apply(weights_init_normal)
 
     # If specified we start from checkpoint
@@ -99,8 +101,8 @@ if __name__ == "__main__":
         for batch_i, (_, imgs, targets) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
-            imgs = Variable(imgs.to(device))
-            targets = Variable(targets.to(device), requires_grad=False)
+            imgs = Variable(imgs.to(DEVICE))
+            targets = Variable(targets.to(DEVICE), requires_grad=False)
             # print(imgs.shape, targets.shape)
 
             loss, outputs = model(imgs, targets)
