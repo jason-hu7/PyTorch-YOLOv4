@@ -77,7 +77,6 @@ if __name__ == "__main__":
     )
 
     optimizer = torch.optim.Adam(model.parameters())
-
     metrics = [
         "grid_size",
         "loss",
@@ -95,6 +94,7 @@ if __name__ == "__main__":
         "conf_noobj",
     ]
 
+    # Training
     for epoch in range(opt.epochs):
         model.train()
         start_time = time.time()
@@ -116,11 +116,8 @@ if __name__ == "__main__":
             # ----------------
             #   Log progress
             # ----------------
-
             log_str = "\n---- [Epoch %d/%d, Batch %d/%d] ----\n" % (epoch, opt.epochs, batch_i, len(dataloader))
-
             metric_table = [["Metrics", *[f"YOLO Layer {i}" for i in range(len(model.yolo_layers))]]]
-
             # Log metrics at each YOLO layer
             for i, metric in enumerate(metrics):
                 formats = {m: "%.6f" for m in metrics}
@@ -128,7 +125,6 @@ if __name__ == "__main__":
                 formats["cls_acc"] = "%.2f%%"
                 row_metrics = [formats[metric] % yolo.metrics.get(metric, 0) for yolo in model.yolo_layers]
                 metric_table += [[metric, *row_metrics]]
-
                 # Tensorboard logging
                 tensorboard_log = []
                 for j, yolo in enumerate(model.yolo_layers):
@@ -137,22 +133,18 @@ if __name__ == "__main__":
                             tensorboard_log += [(f"{name}_{j+1}", metric)]
                 tensorboard_log += [("loss", loss.item())]
                 logger.list_of_scalars_summary(tensorboard_log, batches_done)
-
             log_str += AsciiTable(metric_table).table
             log_str += f"\nTotal loss {loss.item()}"
-
             # Determine approximate time left for epoch
             epoch_batches_left = len(dataloader) - (batch_i + 1)
             time_left = datetime.timedelta(seconds=epoch_batches_left * (time.time() - start_time) / (batch_i + 1))
             log_str += f"\n---- ETA {time_left}"
-
             print(log_str)
-
             model.seen += imgs.size(0)
 
+        # Evaluation
         if epoch % opt.evaluation_interval == 0:
             print("\n---- Evaluating Model ----")
-            # Evaluate the model on the validation set
             precision, recall, AP, f1, ap_class = evaluate(
                 model,
                 path=valid_path,
@@ -165,8 +157,8 @@ if __name__ == "__main__":
             evaluation_metrics = [
                 ("val_precision", precision.mean()),
                 ("val_recall", recall.mean()),
-                ("val_mAP", AP.mean()),
                 ("val_f1", f1.mean()),
+                ("val_mAP", AP.mean()),
             ]
             logger.list_of_scalars_summary(evaluation_metrics, epoch)
 
