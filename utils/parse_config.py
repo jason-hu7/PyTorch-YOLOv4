@@ -1,4 +1,4 @@
-from Typing import List, Dict
+from typing import List, Dict
 
 def parse_model_config(path: str) -> List[Dict[str, str]]:
     """Parses the yolo-v3 layer configuration file and returns module definitions"""
@@ -22,13 +22,13 @@ def parse_model_config(path: str) -> List[Dict[str, str]]:
     return module_defs
 
 
-def parse_data_config(path):
+def parse_data_config(path: str) -> Dict[str, str]:
     """Parses the data configuration file"""
     options = dict()
     options['gpus'] = '0,1,2,3'
     options['num_workers'] = '10'
-    with open(path, 'r') as fp:
-        lines = fp.readlines()
+    with open(path, 'r') as f:
+        lines = f.readlines()
     for line in lines:
         line = line.strip()
         if line == '' or line.startswith('#'):
