@@ -16,3 +16,10 @@ class Upsample(nn.Module):
         return x
 
 
+class EmptyLayer(nn.Module):
+    """Placeholder for 'route' and 'shortcut' layers"""
+
+    def __init__(self):
+        super().__init__()
+
+
