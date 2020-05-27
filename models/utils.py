@@ -45,9 +45,8 @@ def create_modules(module_defs: List[Dict[str, str]]):
         # Create upsample block
         elif module_def["type"] == "upsample":
             upsample = nn.Upsample(scale_factor=int(module_def["stride"]), mode="nearest")
-            # upsample = Upsample(scale_factor=int(module_def["stride"]), mode="nearest")
             modules.add_module(f"upsample_{module_i}", upsample)
-        # Create route block
+        # Create route block, or shortcut layer
         elif module_def["type"] == "route":
             layers = [int(x) for x in module_def["layers"].split(",")]
             filters = sum([output_filters[1:][i] for i in layers])
