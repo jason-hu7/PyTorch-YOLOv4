@@ -1,6 +1,6 @@
 from typing import List, Dict
 import torch.nn as nn
-from models.layers import EmptyLayer, YOLOLayer, Upsample
+from models.layers import EmptyLayer, YOLOLayer
 
 
 def create_modules(module_defs: List[Dict[str, str]]):
