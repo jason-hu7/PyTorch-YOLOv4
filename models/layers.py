@@ -138,4 +138,3 @@ class YOLOLayer(nn.Module):
                 "grid_size": grid_size,
             }
             return output, total_loss
-

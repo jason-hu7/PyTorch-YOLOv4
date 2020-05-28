@@ -16,7 +16,7 @@ def change_box_order(boxes, order):
     return torch.cat([a-b/2,a+b/2], 1)
 
 
-def bbox_wh_iou(wh1, wh2):
+def box_wh_iou(wh1, wh2):
     """ bbox iou with just width and height assuming they have the same centers"""
     wh2 = wh2.t()
     w1, h1 = wh1[0], wh1[1]
