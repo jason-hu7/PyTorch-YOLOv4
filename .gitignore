@@ -1,13 +1,22 @@
-
+# meta files
 .DS_Store
-build
-.git
 *.egg-info
+*.swp
+__pycache__
+.vscode
+
+# git file
+.git
+
+# build file
+build
 dist
+
+# model file and checkpoints
 output
-data/coco
 backup
 weights/*.weights
-__pycache__
 checkpoints
-.vscode
+
+# data
+data/coco
