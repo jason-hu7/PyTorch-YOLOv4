@@ -27,10 +27,18 @@ class YOLOLayer(nn.Module):
         self.grid_size = 0  # grid size
 
     def compute_grid_offsets(self, grid_size, cuda=True):
+        """ Generate grid offsets and scale anchor widths and heights
+            grid_x: x coordinates of each grid (1, 1, g, g)
+            grid_y: y coordinates of each grid (1, 1, g, g)
+            scaled_anchors: anchor widths and heights scaled, same shape as anchors
+            anchor_w: scaled anchor widths (1, A, 1, 1)
+            anchor_h: scaled anchor heights (1, A, 1, 1)
+        """
+        FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+
         self.grid_size = grid_size
         g = self.grid_size
-        FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
-        self.stride = self.img_dim / self.grid_size
+        self.stride = self.img_dim / self.grid_size  # Stride is basically grid length
         # Calculate offsets for each grid
         self.grid_x = torch.arange(g).repeat(g, 1).view([1, 1, g, g]).type(FloatTensor)
         self.grid_y = torch.arange(g).repeat(g, 1).t().view([1, 1, g, g]).type(FloatTensor)
@@ -43,36 +51,35 @@ class YOLOLayer(nn.Module):
         FloatTensor = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
         LongTensor = torch.cuda.LongTensor if x.is_cuda else torch.LongTensor
         ByteTensor = torch.cuda.ByteTensor if x.is_cuda else torch.ByteTensor
-
-        self.img_dim = img_dim
+        # Get feature map grid info.
+        self.img_dim = img_dim  # (N,C,H,W)
         num_samples = x.size(0)
         grid_size = x.size(2)
-
+        # Get predictions and reshape into (N,A,H,W,Cls+5)
+        # Which means for each of the N images, at every (hi, wj) in (H, W) there is A achors
+        # For each anchor there is C class probs, bbox in (x,y,w,h) and a confidence score
         prediction = (
             x.view(num_samples, self.num_anchors, self.num_classes + 5, grid_size, grid_size)
             .permute(0, 1, 3, 4, 2)
             .contiguous()
         )
-
-        # Get outputs
-        x = torch.sigmoid(prediction[..., 0])  # Center x
-        y = torch.sigmoid(prediction[..., 1])  # Center y
-        w = prediction[..., 2]  # Width
-        h = prediction[..., 3]  # Height
+        # Direct bounding box prediction 
+        x = torch.sigmoid(prediction[..., 0])  # Center x (N,A,H,W)
+        y = torch.sigmoid(prediction[..., 1])  # Center y (N,A,H,W)
+        w = prediction[..., 2]  # Width (N,A,H,W)
+        h = prediction[..., 3]  # Height (N,A,H,W)
         pred_conf = torch.sigmoid(prediction[..., 4])  # Conf
         pred_cls = torch.sigmoid(prediction[..., 5:])  # Cls pred.
-
         # If grid size does not match current we compute new offsets
         if grid_size != self.grid_size:
             self.compute_grid_offsets(grid_size, cuda=x.is_cuda)
-
         # Add offset and scale with anchors
-        pred_boxes = FloatTensor(prediction[..., :4].shape)
+        pred_boxes = FloatTensor(prediction[..., :4].shape)  # placeholder (N,A,H,W,4)
         pred_boxes[..., 0] = x.data + self.grid_x
         pred_boxes[..., 1] = y.data + self.grid_y
         pred_boxes[..., 2] = torch.exp(w.data) * self.anchor_w
         pred_boxes[..., 3] = torch.exp(h.data) * self.anchor_h
-
+        # Concat bbox locations, confidence scores and class probs together (N,AxHxW,Cls+5)
         output = torch.cat(
             (
                 pred_boxes.view(num_samples, -1, 4) * self.stride,
@@ -81,9 +88,10 @@ class YOLOLayer(nn.Module):
             ),
             -1,
         )
-
+        # No targets means it is in detection mode
         if targets is None:
             return output, 0
+        # Get targets and calculate loss if in training mode
         else:
             iou_scores, class_mask, obj_mask, noobj_mask, tx, ty, tw, th, tcls, tconf = build_targets(
                 pred_boxes=pred_boxes,
@@ -92,7 +100,6 @@ class YOLOLayer(nn.Module):
                 anchors=self.scaled_anchors,
                 ignore_thres=self.ignore_thres,
             )
-
             # Loss : Mask outputs to ignore non-existing objects (except with conf. loss)
             loss_x = self.mse_loss(x[obj_mask], tx[obj_mask])
             loss_y = self.mse_loss(y[obj_mask], ty[obj_mask])
@@ -103,7 +110,6 @@ class YOLOLayer(nn.Module):
             loss_conf = self.obj_scale * loss_conf_obj + self.noobj_scale * loss_conf_noobj
             loss_cls = self.bce_loss(pred_cls[obj_mask], tcls[obj_mask])
             total_loss = loss_x + loss_y + loss_w + loss_h + loss_conf + loss_cls
-
             # Metrics
             cls_acc = 100 * class_mask[obj_mask].mean()
             conf_obj = pred_conf[obj_mask].mean()
@@ -115,7 +121,6 @@ class YOLOLayer(nn.Module):
             precision = torch.sum(iou50 * detected_mask) / (conf50.sum() + 1e-16)
             recall50 = torch.sum(iou50 * detected_mask) / (obj_mask.sum() + 1e-16)
             recall75 = torch.sum(iou75 * detected_mask) / (obj_mask.sum() + 1e-16)
-
             self.metrics = {
                 "loss": to_cpu(total_loss).item(),
                 "x": to_cpu(loss_x).item(),
