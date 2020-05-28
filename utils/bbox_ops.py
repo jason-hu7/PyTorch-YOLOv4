@@ -16,6 +16,16 @@ def change_box_order(boxes, order):
     return torch.cat([a-b/2,a+b/2], 1)
 
 
+def bbox_wh_iou(wh1, wh2):
+    """ bbox iou with just width and height assuming they have the same centers"""
+    wh2 = wh2.t()
+    w1, h1 = wh1[0], wh1[1]
+    w2, h2 = wh2[0], wh2[1]
+    inter_area = torch.min(w1, w2) * torch.min(h1, h2)
+    union_area = (w1 * h1 + 1e-16) + w2 * h2 - inter_area
+    return inter_area / union_area
+
+
 def box_iou(box1, box2, order='xyxy'):
     '''Compute the intersection over union of two set of boxes.
     The default box order is (xmin, ymin, xmax, ymax).
