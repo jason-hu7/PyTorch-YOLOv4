@@ -41,7 +41,7 @@ if __name__ == "__main__":
     opt = parser.parse_args()
     print(opt)
 
-    logger = Logger("logs")
+    # logger = Logger("logs")
 
     os.makedirs("output", exist_ok=True)
     os.makedirs("checkpoints", exist_ok=True)
@@ -158,7 +158,7 @@ if __name__ == "__main__":
                 ("val_f1", f1.mean()),
                 ("val_mAP", AP.mean()),
             ]
-            logger.list_of_scalars_summary(evaluation_metrics, epoch)
+            # logger.list_of_scalars_summary(evaluation_metrics, epoch)
 
             # Print class APs and mAP
             ap_table = [["Index", "Class name", "AP"]]
