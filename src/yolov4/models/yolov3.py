@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from yolov4.models.utils import create_modules, build_targets
+from yolov4.models.utils import create_modules
 from yolov4.utils import to_cpu
 from yolov4.parse_config import parse_model_config
 
