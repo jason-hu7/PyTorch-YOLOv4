@@ -4,6 +4,7 @@ from yolov4.datasets import ListDataset
 from yolov4.parse_config import parse_data_config, parse_model_config
 from yolov4.evaluate import evaluate
 from yolov4.models.yolov3 import Darknet
+from yolov4.utils import load_classes, weights_init_normal
 
 from terminaltables import AsciiTable
 
@@ -96,7 +97,7 @@ if __name__ == "__main__":
     for epoch in range(opt.epochs):
         model.train()
         start_time = time.time()
-        for batch_i, (_, imgs, targets) in enumerate(dataloader):
+        for batch_i, (imgs, targets) in enumerate(dataloader):
             batches_done = len(dataloader) * epoch + batch_i
 
             imgs = Variable(imgs.to(DEVICE))
