@@ -9,7 +9,7 @@ def create_modules(module_defs: List[Dict[str, str]]):
     """
     Constructs module list of layer blocks from module configuration in module_defs
     """
-    hyperparams = module_defs.pop(0)  # The Net module contains hps 
+    hyperparams = module_defs.pop(0)  # The Net module contains hps
     output_filters = [int(hyperparams["channels"])]
     module_list = nn.ModuleList()
     for module_i, module_def in enumerate(module_defs):
@@ -33,7 +33,10 @@ def create_modules(module_defs: List[Dict[str, str]]):
                 ),
             )
             if bn:
-                modules.add_module(f"batch_norm_{module_i}", nn.BatchNorm2d(filters, momentum=0.9, eps=1e-5))
+                modules.add_module(
+                    f"batch_norm_{module_i}",
+                    nn.BatchNorm2d(filters, momentum=0.9, eps=1e-5),
+                )
             if module_def["activation"] == "leaky":
                 modules.add_module(f"leaky_{module_i}", nn.LeakyReLU(0.1))
         # Create pooling block
@@ -41,12 +44,20 @@ def create_modules(module_defs: List[Dict[str, str]]):
             kernel_size = int(module_def["size"])
             stride = int(module_def["stride"])
             if kernel_size == 2 and stride == 1:
-                modules.add_module(f"_debug_padding_{module_i}", nn.ZeroPad2d((0, 1, 0, 1)))
-            maxpool = nn.MaxPool2d(kernel_size=kernel_size, stride=stride, padding=int((kernel_size - 1) // 2))
+                modules.add_module(
+                    f"_debug_padding_{module_i}", nn.ZeroPad2d((0, 1, 0, 1))
+                )
+            maxpool = nn.MaxPool2d(
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=int((kernel_size - 1) // 2),
+            )
             modules.add_module(f"maxpool_{module_i}", maxpool)
         # Create upsample block
         elif module_def["type"] == "upsample":
-            upsample = nn.Upsample(scale_factor=int(module_def["stride"]), mode="nearest")
+            upsample = nn.Upsample(
+                scale_factor=int(module_def["stride"]), mode="nearest"
+            )
             modules.add_module(f"upsample_{module_i}", upsample)
         # Create route block, or shortcut layer
         elif module_def["type"] == "route":

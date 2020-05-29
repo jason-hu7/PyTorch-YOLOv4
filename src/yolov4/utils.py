@@ -91,8 +91,12 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     # One-hot encoding of label
     tcls[b, best_n, gj, gi, target_labels] = 1
     # Compute label correctness and iou at best anchor
-    class_mask[b, best_n, gj, gi] = (pred_cls[b, best_n, gj, gi].argmax(-1) == target_labels).float()
-    iou_scores[b, best_n, gj, gi] = torch.diag(box_iou(pred_boxes[b, best_n, gj, gi], target_boxes, order="xywh"))
+    class_mask[b, best_n, gj, gi] = (
+        pred_cls[b, best_n, gj, gi].argmax(-1) == target_labels
+    ).float()
+    iou_scores[b, best_n, gj, gi] = torch.diag(
+        box_iou(pred_boxes[b, best_n, gj, gi], target_boxes, order="xywh")
+    )
 
     tconf = obj_mask.float()
     return iou_scores, class_mask, obj_mask, noobj_mask, tx, ty, tw, th, tcls, tconf

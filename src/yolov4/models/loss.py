@@ -20,7 +20,9 @@ class YOLOLoss(nn.Module):
         loc_loss = loss_x + loss_y + loss_w + loss_h
         return loc_loss
 
-    def classification_loss(self, pred_conf, tconf, pred_cls, tcls, obj_mask, noobj_mask):
+    def classification_loss(
+        self, pred_conf, tconf, pred_cls, tcls, obj_mask, noobj_mask
+    ):
         loss_conf_obj = self.bce_loss(pred_conf[obj_mask], tconf[obj_mask])
         loss_conf_noobj = self.bce_loss(pred_conf[noobj_mask], tconf[noobj_mask])
         loss_conf = self.obj_scale * loss_conf_obj + self.noobj_scale * loss_conf_noobj
@@ -29,5 +31,7 @@ class YOLOLoss(nn.Module):
 
     def forward(self):
         loc_loss = self.localization_loss(self, pred_box, target_box, obj_mask)
-        cls_loss = self.classification_loss(self, pred_conf, t_conf, pred_cls, tcls, obj_mask, noobj_mask)
-        return loc_loss+cls_loss
+        cls_loss = self.classification_loss(
+            self, pred_conf, t_conf, pred_cls, tcls, obj_mask, noobj_mask
+        )
+        return loc_loss + cls_loss

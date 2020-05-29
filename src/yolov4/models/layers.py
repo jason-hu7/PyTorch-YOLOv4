@@ -42,8 +42,12 @@ class YOLOLayer(nn.Module):
         self.stride = self.img_dim / self.grid_size  # Stride is basically grid length
         # Calculate offsets for each grid
         self.grid_x = torch.arange(g).repeat(g, 1).view([1, 1, g, g]).type(FloatTensor)
-        self.grid_y = torch.arange(g).repeat(g, 1).t().view([1, 1, g, g]).type(FloatTensor)
-        self.scaled_anchors = FloatTensor([(a_w / self.stride, a_h / self.stride) for a_w, a_h in self.anchors])
+        self.grid_y = (
+            torch.arange(g).repeat(g, 1).t().view([1, 1, g, g]).type(FloatTensor)
+        )
+        self.scaled_anchors = FloatTensor(
+            [(a_w / self.stride, a_h / self.stride) for a_w, a_h in self.anchors]
+        )
         self.anchor_w = self.scaled_anchors[:, 0:1].view((1, self.num_anchors, 1, 1))
         self.anchor_h = self.scaled_anchors[:, 1:2].view((1, self.num_anchors, 1, 1))
 
@@ -60,11 +64,17 @@ class YOLOLayer(nn.Module):
         # Which means for each of the N images, at every (hi, wj) in (H, W) there is A achors
         # For each anchor there is C class probs, bbox in (x,y,w,h) and a confidence score
         prediction = (
-            x.view(num_samples, self.num_anchors, self.num_classes + 5, grid_size, grid_size)
+            x.view(
+                num_samples,
+                self.num_anchors,
+                self.num_classes + 5,
+                grid_size,
+                grid_size,
+            )
             .permute(0, 1, 3, 4, 2)
             .contiguous()
         )
-        # Direct bounding box prediction 
+        # Direct bounding box prediction
         x = torch.sigmoid(prediction[..., 0])  # Center x (N,A,H,W)
         y = torch.sigmoid(prediction[..., 1])  # Center y (N,A,H,W)
         w = prediction[..., 2]  # Width (N,A,H,W)
@@ -94,7 +104,18 @@ class YOLOLayer(nn.Module):
             return output, 0
         # Get targets and calculate loss if in training mode
         else:
-            iou_scores, class_mask, obj_mask, noobj_mask, tx, ty, tw, th, tcls, tconf = build_targets(
+            (
+                iou_scores,
+                class_mask,
+                obj_mask,
+                noobj_mask,
+                tx,
+                ty,
+                tw,
+                th,
+                tcls,
+                tconf,
+            ) = build_targets(
                 pred_boxes=pred_boxes,
                 pred_cls=pred_cls,
                 target=targets,
@@ -108,7 +129,9 @@ class YOLOLayer(nn.Module):
             loss_h = self.mse_loss(h[obj_mask], th[obj_mask])
             loss_conf_obj = self.bce_loss(pred_conf[obj_mask], tconf[obj_mask])
             loss_conf_noobj = self.bce_loss(pred_conf[noobj_mask], tconf[noobj_mask])
-            loss_conf = self.obj_scale * loss_conf_obj + self.noobj_scale * loss_conf_noobj
+            loss_conf = (
+                self.obj_scale * loss_conf_obj + self.noobj_scale * loss_conf_noobj
+            )
             loss_cls = self.bce_loss(pred_cls[obj_mask], tcls[obj_mask])
             total_loss = loss_x + loss_y + loss_w + loss_h + loss_conf + loss_cls
             # Metrics

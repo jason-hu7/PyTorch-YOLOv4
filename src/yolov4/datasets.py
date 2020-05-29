@@ -94,15 +94,16 @@ class ImageDataset(Dataset):
 
     def xywh2xyxy(self, boxes):
         """boxes in (batch_i, label, x, y, w, h)"""
-        a = boxes[:,2:4]
-        b = boxes[:,4:]
-        boxes[:, 2:4] = a-b/2
-        boxes[:, 4:] = a+ b/2
+        a = boxes[:, 2:4]
+        b = boxes[:, 4:]
+        boxes[:, 2:4] = a - b / 2
+        boxes[:, 4:] = a + b / 2
         return boxes
 
 
 class ImageFolder(ImageDataset):
     """Load all the images in a folder, labels not required"""
+
     def __init__(self, folder_path, img_size=416):
         self.files = sorted(glob.glob("%s/*.*" % folder_path))
         self.img_size = img_size
@@ -132,7 +133,15 @@ class ListDataset(ImageDataset):
         - Each image has its own annotaion file
     """
 
-    def __init__(self, list_path, img_size=416, augment=True, multiscale=True, normalized_labels=True, xyxy=False):
+    def __init__(
+        self,
+        list_path,
+        img_size=416,
+        augment=True,
+        multiscale=True,
+        normalized_labels=True,
+        xyxy=False,
+    ):
         self.img_files = []
         self.label_files = []
         self.img_size = img_size
@@ -154,14 +163,14 @@ class ListDataset(ImageDataset):
             imgs: c, h, w
             targets: class, x, y, w, h
         """
-        #-----------------Image------------------
+        # -----------------Image------------------
         img = self._load_image(index)
         _, h, w = img.shape
         h_factor, w_factor = (h, w) if self.normalized_labels else (1, 1)
         # Pad to square resolution
         img, pad = self.pad_to_square(img, 0)
         _, padded_h, padded_w = img.shape
-        #-----------------Label------------------
+        # -----------------Label------------------
         label_path = self.label_files[index % len(self.img_files)].rstrip()
         targets = None
         if os.path.exists(label_path):
@@ -171,7 +180,7 @@ class ListDataset(ImageDataset):
             targets[:, 1:] = boxes
         # Apply augmentations
         if self.augment:
-            #TODO
+            # TODO
             pass
         return img, targets
 
@@ -208,7 +217,9 @@ class ListDataset(ImageDataset):
             self.img_files = file.readlines()
         # Load annotation for each image
         self.label_files = [
-            path.replace("images", "labels").replace(".png", ".txt").replace(".jpg", ".txt")
+            path.replace("images", "labels")
+            .replace(".png", ".txt")
+            .replace(".jpg", ".txt")
             for path in self.img_files
         ]
 
@@ -216,7 +227,7 @@ class ListDataset(ImageDataset):
         """Load an individual image based on index"""
         img_path = self.img_files[index % len(self.img_files)].rstrip()
         # Extract image as PyTorch tensor
-        img = transforms.ToTensor()(Image.open(img_path).convert('RGB'))
+        img = transforms.ToTensor()(Image.open(img_path).convert("RGB"))
         # Handle images with less than three channels
         if len(img.shape) != 3:
             img = img.unsqueeze(0)

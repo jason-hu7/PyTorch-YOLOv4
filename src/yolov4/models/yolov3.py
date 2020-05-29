@@ -19,7 +19,9 @@ class Darknet(nn.Module):
         super().__init__()
         self.module_defs = parse_model_config(config_path)
         self.hyperparams, self.module_list = create_modules(self.module_defs)
-        self.yolo_layers = [layer[0] for layer in self.module_list if hasattr(layer[0], "metrics")]
+        self.yolo_layers = [
+            layer[0] for layer in self.module_list if hasattr(layer[0], "metrics")
+        ]
         self.img_size = img_size
         self.seen = 0
         self.header_info = np.array([0, 0, 0, self.seen, 0], dtype=np.int32)
@@ -28,12 +30,20 @@ class Darknet(nn.Module):
         img_dim = x.shape[2]
         loss = 0
         layer_outputs, yolo_outputs = [], []
-        for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
+        for i, (module_def, module) in enumerate(
+            zip(self.module_defs, self.module_list)
+        ):
             # For conv, upsample and maxpool layers forward prop as it is.
             if module_def["type"] in ["convolutional", "upsample", "maxpool"]:
                 x = module(x)
             elif module_def["type"] == "route":
-                x = torch.cat([layer_outputs[int(layer_i)] for layer_i in module_def["layers"].split(",")], 1)
+                x = torch.cat(
+                    [
+                        layer_outputs[int(layer_i)]
+                        for layer_i in module_def["layers"].split(",")
+                    ],
+                    1,
+                )
             elif module_def["type"] == "shortcut":
                 layer_i = int(module_def["from"])
                 x = layer_outputs[-1] + layer_outputs[layer_i]
@@ -49,7 +59,9 @@ class Darknet(nn.Module):
         """Parses and loads the weights stored in 'weights_path'"""
         # Open the weights file
         with open(weights_path, "rb") as f:
-            header = np.fromfile(f, dtype=np.int32, count=5)  # First five are header values
+            header = np.fromfile(
+                f, dtype=np.int32, count=5
+            )  # First five are header values
             self.header_info = header  # Needed to write header when saving weights
             self.seen = header[3]  # number of images seen during training
             weights = np.fromfile(f, dtype=np.float32)  # The rest are weights
@@ -59,7 +71,9 @@ class Darknet(nn.Module):
             cutoff = 75
 
         ptr = 0
-        for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
+        for i, (module_def, module) in enumerate(
+            zip(self.module_defs, self.module_list)
+        ):
             if i == cutoff:
                 break
             if module_def["type"] == "convolutional":
@@ -69,30 +83,42 @@ class Darknet(nn.Module):
                     bn_layer = module[1]
                     num_b = bn_layer.bias.numel()  # Number of biases
                     # Bias
-                    bn_b = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(bn_layer.bias)
+                    bn_b = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                        bn_layer.bias
+                    )
                     bn_layer.bias.data.copy_(bn_b)
                     ptr += num_b
                     # Weight
-                    bn_w = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(bn_layer.weight)
+                    bn_w = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                        bn_layer.weight
+                    )
                     bn_layer.weight.data.copy_(bn_w)
                     ptr += num_b
                     # Running Mean
-                    bn_rm = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(bn_layer.running_mean)
+                    bn_rm = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                        bn_layer.running_mean
+                    )
                     bn_layer.running_mean.data.copy_(bn_rm)
                     ptr += num_b
                     # Running Var
-                    bn_rv = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(bn_layer.running_var)
+                    bn_rv = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                        bn_layer.running_var
+                    )
                     bn_layer.running_var.data.copy_(bn_rv)
                     ptr += num_b
                 else:
                     # Load conv. bias
                     num_b = conv_layer.bias.numel()
-                    conv_b = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(conv_layer.bias)
+                    conv_b = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                        conv_layer.bias
+                    )
                     conv_layer.bias.data.copy_(conv_b)
                     ptr += num_b
                 # Load conv. weights
                 num_w = conv_layer.weight.numel()
-                conv_w = torch.from_numpy(weights[ptr : ptr + num_w]).view_as(conv_layer.weight)
+                conv_w = torch.from_numpy(weights[ptr : ptr + num_w]).view_as(
+                    conv_layer.weight
+                )
                 conv_layer.weight.data.copy_(conv_w)
                 ptr += num_w
 
@@ -105,7 +131,9 @@ class Darknet(nn.Module):
         self.header_info[3] = self.seen
         self.header_info.tofile(fp)
         # Iterate through layers
-        for i, (module_def, module) in enumerate(zip(self.module_defs[:cutoff], self.module_list[:cutoff])):
+        for i, (module_def, module) in enumerate(
+            zip(self.module_defs[:cutoff], self.module_list[:cutoff])
+        ):
             if module_def["type"] == "convolutional":
                 conv_layer = module[0]
                 # If batch norm, load bn first

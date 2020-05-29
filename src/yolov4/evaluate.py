@@ -20,27 +20,41 @@ def evaluate(model, path, iou_thres, conf_thres, nms_thres, img_size, batch_size
     # Get dataloader
     dataset = ListDataset(path, img_size=img_size, augment=False, multiscale=False)
     dataloader = DataLoader(
-        dataset, batch_size=batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collate_fn
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=1,
+        collate_fn=dataset.collate_fn,
     )
 
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
-    for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
+    for batch_i, (_, imgs, targets) in enumerate(
+        tqdm.tqdm(dataloader, desc="Detecting objects")
+    ):
         # Extract labels
         labels += targets[:, 1].tolist()
         # Rescale target
-        targets[:, 2:] = change_box_order(targets[:, 2:], 'xywh2xyxy')
+        targets[:, 2:] = change_box_order(targets[:, 2:], "xywh2xyxy")
         targets[:, 2:] *= img_size
         # Forward prop and nms to lock in prediction
         imgs = Variable(imgs.type(Tensor), requires_grad=False)
         with torch.no_grad():
             outputs = model(imgs)
-            outputs = non_max_suppression(outputs, conf_thres=conf_thres, nms_thres=nms_thres)
+            outputs = non_max_suppression(
+                outputs, conf_thres=conf_thres, nms_thres=nms_thres
+            )
         # Evaluate this batch
-        sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
+        sample_metrics += get_batch_statistics(
+            outputs, targets, iou_threshold=iou_thres
+        )
     # Concatenate sample statistics
-    true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
-    precision, recall, AP, f1, ap_class = ap_per_class(true_positives, pred_scores, pred_labels, labels)
+    true_positives, pred_scores, pred_labels = [
+        np.concatenate(x, 0) for x in list(zip(*sample_metrics))
+    ]
+    precision, recall, AP, f1, ap_class = ap_per_class(
+        true_positives, pred_scores, pred_labels, labels
+    )
     return precision, recall, AP, f1, ap_class
 
 
@@ -133,14 +147,18 @@ def get_batch_statistics(outputs, targets, iou_threshold):
         if len(annotations):
             detected_boxes = []
             target_boxes = annotations[:, 1:]
-            for pred_i, (pred_box, pred_label) in enumerate(zip(pred_boxes, pred_labels)):
+            for pred_i, (pred_box, pred_label) in enumerate(
+                zip(pred_boxes, pred_labels)
+            ):
                 # If targets are found break
                 if len(detected_boxes) == len(annotations):
                     break
                 # Ignore if label is not one of the target labels
                 if pred_label not in target_labels:
                     continue
-                iou, box_index = box_iou(pred_box.unsqueeze(0), target_boxes, order="xyxy").max(0)
+                iou, box_index = box_iou(
+                    pred_box.unsqueeze(0), target_boxes, order="xyxy"
+                ).max(0)
                 if iou >= iou_threshold and box_index not in detected_boxes:
                     true_positives[pred_i] = 1
                     detected_boxes += [box_index]
