@@ -92,7 +92,6 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     tcls[b, best_n, gj, gi, target_labels] = 1
     # Compute label correctness and iou at best anchor
     class_mask[b, best_n, gj, gi] = (pred_cls[b, best_n, gj, gi].argmax(-1) == target_labels).float()
-    print("shape of iou score", iou_scores[b, best_n, gj, gi].shape)
     iou_scores[b, best_n, gj, gi] = torch.diag(box_iou(pred_boxes[b, best_n, gj, gi], target_boxes, order="xywh"))
 
     tconf = obj_mask.float()
