@@ -4,10 +4,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from models.utils import create_modules, build_targets
-# TODO Not right
-from utils.utils import to_cpu
-from utils.parse_config import parse_model_config
+from yolov4.models.utils import create_modules, build_targets
+from yolov4.utils import to_cpu
+from yolov4.parse_config import parse_model_config
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches

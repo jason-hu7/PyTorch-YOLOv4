@@ -1,7 +1,7 @@
 from __future__ import division
 
-from utils.datasets import ListDataset
-from utils.bbox_ops import box_iou, change_box_order, non_max_suppression
+from yolov4.datasets import ListDataset
+from yolov4.bbox_ops import box_iou, change_box_order, non_max_suppression
 
 import torch
 from torch.utils.data import DataLoader

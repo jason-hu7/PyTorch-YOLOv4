@@ -2,8 +2,8 @@ from typing import List, Dict
 
 import torch
 import torch.nn as nn
-from models.layers import EmptyLayer, YOLOLayer
-from utils.bbox_ops import box_wh_iou, box_iou  # TODO Not right need to change
+from yolov4.models.layers import EmptyLayer, YOLOLayer
+from yolov4.bbox_ops import box_wh_iou, box_iou
 
 
 def create_modules(module_defs: List[Dict[str, str]]):

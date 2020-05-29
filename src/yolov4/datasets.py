@@ -11,8 +11,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 
-from utils.augmentations import horisontal_flip
-from utils.bbox_ops import change_box_order
+from yolov4.augmentations import horisontal_flip
+from yolov4.bbox_ops import change_box_order
 
 
 class ImageDataset(Dataset):
