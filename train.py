@@ -1,7 +1,7 @@
-from __future__ import division 
+from __future__ import division
 # from utils.logger import Logger
 from yolov4.datasets import ListDataset
-from yolov4.parse_config import parse_data_config, parse_model_config
+from yolov4.parse_config import parse_data_config
 from yolov4.evaluate import evaluate
 from yolov4.models.yolov3 import Darknet
 from yolov4.utils import load_classes, weights_init_normal
@@ -9,17 +9,12 @@ from yolov4.utils import load_classes, weights_init_normal
 from terminaltables import AsciiTable
 
 import os
-import sys
 import time
-import datetime
 import argparse
 
 import torch
 from torch.utils.data import DataLoader
-from torchvision import datasets
-from torchvision import transforms
 from torch.autograd import Variable
-import torch.optim as optim
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,7 +61,7 @@ if __name__ == "__main__":
 
     # Get dataloader
     dataset = ListDataset(train_path, img_size=opt.img_size, augment=True, multiscale=opt.multiscale_training)
-    dataloader = torch.utils.data.DataLoader(
+    dataloader = DataLoader(
         dataset,
         batch_size=opt.batch_size,
         shuffle=True,
