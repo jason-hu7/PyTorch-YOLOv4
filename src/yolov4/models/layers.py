@@ -99,6 +99,7 @@ class YOLOLayer(nn.Module):
             ),
             -1,
         )
+        print("output", output.shape, pred_boxes.shape, pred_conf.shape, pred_cls.shape)
         # No targets means it is in detection mode
         if targets is None:
             return output, 0
