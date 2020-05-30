@@ -4,6 +4,7 @@ import torch.nn as nn
 from yolov4.utils import build_targets, to_cpu
 from yolov4.evaluate import get_metrics
 
+
 class YOLOLoss(nn.Module):
     def __init__(self, num_classes=80, ignore_thres=0.5, obj_scale=1, noobj_scale=100):
         super().__init__()
