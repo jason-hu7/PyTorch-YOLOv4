@@ -1,21 +1,29 @@
 import torch
 import torch.nn as nn
 
-from yolov4.utils import build_targets
+from yolov4.utils import build_targets, to_cpu
 
 
 class YOLOLoss(nn.Module):
-    def __init__(self, ignore_thres=0.5, obj_scale=1, noobj_scale=100):
+    def __init__(self, num_classes=80, ignore_thres=0.5, obj_scale=1, noobj_scale=100):
         super().__init__()
         self.mse_loss = nn.MSELoss()
         self.bce_loss = nn.BCELoss()
         self.obj_scale = obj_scale
         self.noobj_scale = noobj_scale
         self.ignore_thres = ignore_thres
+        self.num_classes = num_classes
 
-    def localization_loss(self, pred_boxes, target_box, obj_mask):
-        x, y, w, h = pred_boxes
-        tx, ty, tw, th = target_box
+    def localization_loss(self, direct_boxes, target_boxes, obj_mask):
+        """ calculate localization (regression) loss, localization loss is the sum of all 4 coordinates.
+        Args:
+            direct_boxes: bounding boxes in the direct predictions (x, y, w, h)
+            target_boxes: bounding boxes from targets (tx, ty, tw, th)
+        Returns:
+            loc_loss: total localization loss
+        """
+        x, y, w, h = direct_boxes
+        tx, ty, tw, th = target_boxes
         loss_x = self.mse_loss(x[obj_mask], tx[obj_mask])
         loss_y = self.mse_loss(y[obj_mask], ty[obj_mask])
         loss_w = self.mse_loss(w[obj_mask], tw[obj_mask])
@@ -46,10 +54,11 @@ class YOLOLoss(nn.Module):
         recall75 = torch.sum(iou75 * detected_mask) / (obj_mask.sum() + 1e-16)
         return cls_acc, recall50, recall75, precision, conf_obj, conf_noobj
 
-    def forward(self, output, targets, anchors):
-        pred_boxes = output[..., :4]
-        pred_conf = output[..., 4]
-        pred_cls = output[..., 5:]
+    def forward(self, output, targets, direct_boxes, anchors):
+        nB, nA, nG, _ = direct_boxes[0].shape
+        pred_boxes = output[..., :4].view(nB, -1, nG, nG, 4)
+        pred_conf = output[..., 4].view(nB, -1, nG, nG)
+        pred_cls = output[..., 5:].view(nB, -1, nG, nG, self.num_classes)
         (
             iou_scores,
             class_mask,
@@ -68,9 +77,9 @@ class YOLOLoss(nn.Module):
             anchors=anchors,
             ignore_thres=self.ignore_thres,
         )
-        loss_loc = self.localization_loss(pred_boxes, targets, obj_mask)
+        loss_loc = self.localization_loss(direct_boxes, (tx, ty, tw, th), obj_mask)
         loss_conf, loss_cls = self.classification_loss(
-            self, pred_conf, tconf, pred_cls, tcls, obj_mask, noobj_mask
+            pred_conf, tconf, pred_cls, tcls, obj_mask, noobj_mask
         )
         total_loss = loss_loc + loss_conf + loss_cls
         # Get metrics

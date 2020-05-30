@@ -123,10 +123,6 @@ if __name__ == "__main__":
     metrics = [
         "grid_size",
         "loss",
-        "x",
-        "y",
-        "w",
-        "h",
         "conf",
         "cls",
         "cls_acc",
