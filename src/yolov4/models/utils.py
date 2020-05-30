@@ -2,7 +2,7 @@ from typing import List, Dict
 
 import torch
 import torch.nn as nn
-from yolov4.models.layers import EmptyLayer, YOLOLayer
+from yolov4.models.layers import EmptyLayer, YOLOLayer, Mish
 
 
 def create_modules(module_defs: List[Dict[str, str]]):
@@ -39,6 +39,8 @@ def create_modules(module_defs: List[Dict[str, str]]):
                 )
             if module_def["activation"] == "leaky":
                 modules.add_module(f"leaky_{module_i}", nn.LeakyReLU(0.1))
+            elif module_def["activation"] == "mish":
+                modules.add_module(f"mish_{module_i}", Mish())
         # Create pooling block
         elif module_def["type"] == "maxpool":
             kernel_size = int(module_def["size"])
