@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from yolov4.utils import build_targets, to_cpu
-
+from yolov4.evaluate import get_metrics
 
 class YOLOLoss(nn.Module):
     def __init__(self, num_classes=80, ignore_thres=0.5, obj_scale=1, noobj_scale=100):
@@ -40,20 +40,6 @@ class YOLOLoss(nn.Module):
         loss_cls = self.bce_loss(pred_cls[obj_mask], tcls[obj_mask])
         return loss_conf, loss_cls
 
-    def get_metrics(self, pred_conf, tconf, class_mask, obj_mask, noobj_mask, iou_scores):
-        # Metrics
-        cls_acc = 100 * class_mask[obj_mask].mean()
-        conf_obj = pred_conf[obj_mask].mean()
-        conf_noobj = pred_conf[noobj_mask].mean()
-        conf50 = (pred_conf > 0.5).float()
-        iou50 = (iou_scores > 0.5).float()
-        iou75 = (iou_scores > 0.75).float()
-        detected_mask = conf50 * class_mask * tconf
-        precision = torch.sum(iou50 * detected_mask) / (conf50.sum() + 1e-16)
-        recall50 = torch.sum(iou50 * detected_mask) / (obj_mask.sum() + 1e-16)
-        recall75 = torch.sum(iou75 * detected_mask) / (obj_mask.sum() + 1e-16)
-        return cls_acc, recall50, recall75, precision, conf_obj, conf_noobj
-
     def forward(self, output, targets, direct_boxes, anchors):
         nB, nA, nG, _ = direct_boxes[0].shape
         pred_boxes = output[..., :4].view(nB, -1, nG, nG, 4)
@@ -83,7 +69,7 @@ class YOLOLoss(nn.Module):
         )
         total_loss = loss_loc + loss_conf + loss_cls
         # Get metrics
-        cls_acc, recall50, recall75, precision, conf_obj, conf_noobj = self.get_metrics(pred_conf, tconf, class_mask, obj_mask, noobj_mask, iou_scores)
+        cls_acc, recall50, recall75, precision, conf_obj, conf_noobj = get_metrics(pred_conf, tconf, class_mask, obj_mask, noobj_mask, iou_scores)
         self.metrics = {
             "loss": to_cpu(total_loss).item(),
             "loc" : to_cpu(loss_loc).item(),
