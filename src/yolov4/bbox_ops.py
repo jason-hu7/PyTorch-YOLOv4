@@ -46,8 +46,8 @@ def box_iou(boxes1, boxes2, order="xyxy"):
     """Compute the intersection over union of two set of boxes.
     The default box order is (xmin, ymin, xmax, ymax).
     Args:
-      box1: (tensor) bounding boxes, sized [N,4].
-      box2: (tensor) bounding boxes, sized [M,4].
+      boxes1: (tensor) bounding boxes, sized [N,4].
+      boxes2: (tensor) bounding boxes, sized [M,4].
       order: (str) box order, either 'xyxy' or 'xywh'.
     Return:
       (tensor) iou, sized [N,M].
@@ -58,8 +58,8 @@ def box_iou(boxes1, boxes2, order="xyxy"):
         boxes1 = change_box_order(boxes1, "xywh2xyxy")
         boxes2 = change_box_order(boxes2, "xywh2xyxy")
 
-    N = boxes1.size(0)
-    M = boxes2.size(0)
+    area1 = box_area(boxes1)
+    area2 = box_area(boxes2)
 
     lt = torch.max(boxes1[:, None, :2], boxes2[:, :2])  # [N,M,2]
     rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:])  # [N,M,2]
@@ -67,11 +67,40 @@ def box_iou(boxes1, boxes2, order="xyxy"):
     wh = (rb - lt).clamp(min=0)  # [N,M,2]
     inter = wh[:, :, 0] * wh[:, :, 1]  # [N,M]
 
-    area1 = box_area(boxes1)
-    area2 = box_area(boxes2)
     iou = inter / (area1[:, None] + area2 - inter)
     return iou
 
+
+def box_diou(boxes1, boxes2):
+    """Compute the intersection over union of two set of boxes.
+    The default box order is (xmin, ymin, xmax, ymax).
+    Args:
+      boxes1: (tensor) bounding boxes, sized [N,4].
+      boxes2: (tensor) bounding boxes, sized [M,4].
+      order: (str) box order, either 'xyxy' or 'xywh'.
+    Return:
+      (tensor) iou, sized [N,M].
+    """
+    area1 = box_area(boxes1)
+    area2 = box_area(boxes2)
+
+    lt = torch.max(boxes1[:, None, :2], boxes2[:, :2])  # [N,M,2]
+    rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:])  # [N,M,2]
+
+    wh = (rb - lt).clamp(min=0)  # [N,M,2]
+    inter = wh[:, :, 0] * wh[:, :, 1]  # [N,M]
+
+    # Calculate the diagonal length of the smallest bbox covering the 2 boxes
+    clt=torch.min(boxes1[:, None, :2], boxes2[:, :2])
+    crb=torch.max(boxes1[:, None, 2:], boxes2[:, 2:])
+    c=((crb-clt)**2).sum(dim=2)
+    # Calculate the euclidean distance between central points of boxes1 and boxes2
+    x1=(boxes1[:, None, 0] + boxes1[:, None, 2])/2
+    y1=(boxes1[:, None, 1] + boxes1[:, None, 3])/2
+    x2=(boxes2[:, None, 0] + boxes2[:, None, 2])/2
+    y2=(boxes2[:, None, 1] + boxes2[:, None, 3])/2
+    d=(x1-x2.t())**2 + (y1-y2.t())**2
+    return inter / (area1[:, None] + area2 - inter) - (d / c)**0.6
 
 
 def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.4):
