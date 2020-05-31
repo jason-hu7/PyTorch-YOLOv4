@@ -95,10 +95,10 @@ def box_diou(boxes1, boxes2, beta=0.6):
     crb=torch.max(boxes1[:, None, 2:], boxes2[:, 2:])
     c=((crb-clt)**2).sum(dim=2)
     # Calculate the euclidean distance between central points of boxes1 and boxes2
-    x1=(boxes1[:, None, 0] + boxes1[:, None, 2])/2
-    y1=(boxes1[:, None, 1] + boxes1[:, None, 3])/2
-    x2=(boxes2[:, None, 0] + boxes2[:, None, 2])/2
-    y2=(boxes2[:, None, 1] + boxes2[:, None, 3])/2
+    center_x1=(boxes1[:, None, 0] + boxes1[:, None, 2])/2
+    center_y1=(boxes1[:, None, 1] + boxes1[:, None, 3])/2
+    center_x2=(boxes2[:, None, 0] + boxes2[:, None, 2])/2
+    center_y2=(boxes2[:, None, 1] + boxes2[:, None, 3])/2
     d=(x1-x2.t())**2 + (y1-y2.t())**2
     return inter / (area1[:, None] + area2 - inter) - (d / c) ** beta
 
