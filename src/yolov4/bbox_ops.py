@@ -17,6 +17,21 @@ def change_box_order(boxes, order):
     return torch.cat([a - b / 2, a + b / 2], 1)
 
 
+def box_area(boxes):
+    """
+    Computes the area of a set of bounding boxes, which are specified by its
+    (x1, y1, x2, y2) coordinates.
+    Arguments:
+        boxes (Tensor[N, 4]): boxes for which the area will be computed. They
+            are expected to be in (x1, y1, x2, y2) format
+    Returns:
+        area (Tensor[N]): area for each box
+    Reference:
+        https://github.com/pytorch/vision/blob/25694e07199c273ca1a980e6013b7f451f5a3cb0/torchvision/ops/boxes.py#L136
+    """
+    return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+
+
 def box_wh_iou(wh1, wh2):
     """ bbox iou with just width and height assuming they have the same centers"""
     wh2 = wh2.t()
@@ -27,7 +42,7 @@ def box_wh_iou(wh1, wh2):
     return inter_area / union_area
 
 
-def box_iou(box1, box2, order="xyxy"):
+def box_iou(boxes1, boxes2, order="xyxy"):
     """Compute the intersection over union of two set of boxes.
     The default box order is (xmin, ymin, xmax, ymax).
     Args:
@@ -40,22 +55,23 @@ def box_iou(box1, box2, order="xyxy"):
       https://github.com/chainer/chainercv/blob/master/chainercv/utils/bbox/bbox_iou.py
     """
     if order == "xywh":
-        box1 = change_box_order(box1, "xywh2xyxy")
-        box2 = change_box_order(box2, "xywh2xyxy")
+        boxes1 = change_box_order(boxes1, "xywh2xyxy")
+        boxes2 = change_box_order(boxes2, "xywh2xyxy")
 
-    N = box1.size(0)
-    M = box2.size(0)
+    N = boxes1.size(0)
+    M = boxes2.size(0)
 
-    lt = torch.max(box1[:, None, :2], box2[:, :2])  # [N,M,2]
-    rb = torch.min(box1[:, None, 2:], box2[:, 2:])  # [N,M,2]
+    lt = torch.max(boxes1[:, None, :2], boxes2[:, :2])  # [N,M,2]
+    rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:])  # [N,M,2]
 
-    wh = (rb - lt + 1).clamp(min=0)  # [N,M,2]
+    wh = (rb - lt).clamp(min=0)  # [N,M,2]
     inter = wh[:, :, 0] * wh[:, :, 1]  # [N,M]
 
-    area1 = (box1[:, 2] - box1[:, 0] + 1) * (box1[:, 3] - box1[:, 1] + 1)  # [N,]
-    area2 = (box2[:, 2] - box2[:, 0] + 1) * (box2[:, 3] - box2[:, 1] + 1)  # [M,]
+    area1 = box_area(boxes1)
+    area2 = box_area(boxes2)
     iou = inter / (area1[:, None] + area2 - inter)
     return iou
+
 
 
 def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.4):
