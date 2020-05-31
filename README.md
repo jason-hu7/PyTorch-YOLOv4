@@ -59,4 +59,4 @@ No guidelines yet, help a brother out
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/jason-hu7/PyTorch-YOLOv4/blob/master/LICENSE) file for details
