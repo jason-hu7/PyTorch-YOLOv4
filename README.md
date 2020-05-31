@@ -45,6 +45,14 @@ How to test and evalute a model
 Place holder
 ```
 
+## Detection
+
+Use trained model to detect objects in images
+
+```
+Place holder
+```
+
 ## Contributing
 
 No guidelines yet, help a brother out
