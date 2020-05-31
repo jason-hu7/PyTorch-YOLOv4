@@ -71,7 +71,7 @@ def box_iou(boxes1, boxes2, order="xyxy"):
     return iou
 
 
-def box_diou(boxes1, boxes2):
+def box_diou(boxes1, boxes2, beta=0.6):
     """Compute the intersection over union of two set of boxes.
     The default box order is (xmin, ymin, xmax, ymax).
     Args:
@@ -100,7 +100,7 @@ def box_diou(boxes1, boxes2):
     x2=(boxes2[:, None, 0] + boxes2[:, None, 2])/2
     y2=(boxes2[:, None, 1] + boxes2[:, None, 3])/2
     d=(x1-x2.t())**2 + (y1-y2.t())**2
-    return inter / (area1[:, None] + area2 - inter) - (d / c)**0.6
+    return inter / (area1[:, None] + area2 - inter) - (d / c) ** beta
 
 
 def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.4):
