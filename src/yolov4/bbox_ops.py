@@ -1,4 +1,5 @@
 import torch
+import math
 
 
 def change_box_order(boxes, order):
@@ -72,7 +73,7 @@ def box_iou(boxes1, boxes2, order="xyxy"):
 
 
 def box_diou(boxes1, boxes2, beta=0.6):
-    """Compute the intersection over union of two set of boxes.
+    """Compute the distance - intersection over union of two set of boxes.
     The default box order is (xmin, ymin, xmax, ymax).
     Args:
       boxes1: (tensor) bounding boxes, sized [N,4].
@@ -80,6 +81,8 @@ def box_diou(boxes1, boxes2, beta=0.6):
       order: (str) box order, either 'xyxy' or 'xywh'.
     Return:
       (tensor) iou, sized [N,M].
+    Reference:
+        https://arxiv.org/pdf/1911.08287.pdf
     """
     area1 = box_area(boxes1)
     area2 = box_area(boxes2)
@@ -93,14 +96,64 @@ def box_diou(boxes1, boxes2, beta=0.6):
     # Calculate the diagonal length of the smallest bbox covering the 2 boxes
     clt=torch.min(boxes1[:, None, :2], boxes2[:, :2])
     crb=torch.max(boxes1[:, None, 2:], boxes2[:, 2:])
-    c=((crb-clt)**2).sum(dim=2)
+    outer_diag=((crb-clt)**2).sum(dim=2)
     # Calculate the euclidean distance between central points of boxes1 and boxes2
     center_x1=(boxes1[:, None, 0] + boxes1[:, None, 2])/2
     center_y1=(boxes1[:, None, 1] + boxes1[:, None, 3])/2
     center_x2=(boxes2[:, None, 0] + boxes2[:, None, 2])/2
     center_y2=(boxes2[:, None, 1] + boxes2[:, None, 3])/2
-    d=(x1-x2.t())**2 + (y1-y2.t())**2
-    return inter / (area1[:, None] + area2 - inter) - (d / c) ** beta
+    inner_diag=(center_x1-center_x2.t())**2 + (center_y1-center_y2.t())**2
+    union = area1[:, None] + area2 - inter
+    # Calculate dious
+    dious = inter / union - (inner_diag / outer_diag) ** beta
+    dious = torch.clamp(dious, min=-1.0, max = 1.0)
+    return dious
+
+
+def box_ciou(boxes1, boxes2):
+    """Compute the complete - intersection over union of two set of boxes.
+    The default box order is (xmin, ymin, xmax, ymax).
+    Args:
+      boxes1: (tensor) bounding boxes, sized [N,4].
+      boxes2: (tensor) bounding boxes, sized [M,4].
+      order: (str) box order, either 'xyxy' or 'xywh'.
+    Return:
+      (tensor) iou, sized [N,M].
+    Reference:
+        https://arxiv.org/pdf/1911.08287.pdf
+    """
+    area1 = box_area(boxes1)
+    area2 = box_area(boxes2)
+
+    lt = torch.max(boxes1[:, None, :2], boxes2[:, :2])  # [N,M,2]
+    rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:])  # [N,M,2]
+
+    wh = (rb - lt).clamp(min=0)  # [N,M,2]
+    inter = wh[:, :, 0] * wh[:, :, 1]  # [N,M]
+
+    # Calculate the diagonal length of the smallest bbox covering the 2 boxes
+    clt=torch.min(boxes1[:, None, :2], boxes2[:, :2])
+    crb=torch.max(boxes1[:, None, 2:], boxes2[:, 2:])
+    outer_diag=((crb-clt)**2).sum(dim=2)
+    # Calculate the euclidean distance between central points of boxes1 and boxes2
+    center_x1=(boxes1[:, None, 0] + boxes1[:, None, 2])/2
+    center_y1=(boxes1[:, None, 1] + boxes1[:, None, 3])/2
+    center_x2=(boxes2[:, None, 0] + boxes2[:, None, 2])/2
+    center_y2=(boxes2[:, None, 1] + boxes2[:, None, 3])/2
+    inner_diag=(center_x1-center_x2.t())**2 + (center_y1-center_y2.t())**2
+    union = area1[:, None] + area2 - inter
+    # Aspect ratio parameter
+    w1 = boxes1[:, 2] - boxes1[:, 0]
+    h1 = boxes1[:, 3] - boxes1[:, 1]
+    w2 = boxes2[:, 2] - boxes2[:, 0]
+    h2 = boxes2[:, 3] - boxes2[:, 1]
+    v = (4 / (math.pi**2)) * torch.square((torch.atan(w2/h2) - torch.atan(w1/h1)))
+    # Trade-off parameter
+    alpha = v / (1- inter/union + v)
+    # Calculate ciou
+    cious = inter/union - (inner_diag/outer_diag + alpha*v)
+    cious = torch.clamp(cious, min=-1.0, max = 1.0)
+    return cious
 
 
 def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.4):
