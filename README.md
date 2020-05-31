@@ -1,7 +1,9 @@
 # PyTorch-YOLOv4
 
 This project aims to implement YOLOv4 in PyTorch.
+
 Paper: https://arxiv.org/pdf/2004.10934.pdf
+
 Original Implementation and Source Code: https://github.com/AlexeyAB/darknet
 
 This is still a work in progress.
