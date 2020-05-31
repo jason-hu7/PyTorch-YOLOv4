@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from yolov4.utils import build_targets, to_cpu
 from yolov4.loss import YOLOLoss
 
 
@@ -66,8 +65,6 @@ class YOLOLayer(nn.Module):
     def forward(self, x, targets=None, img_dim=None):
         # Tensors for cuda support
         FloatTensor = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
-        LongTensor = torch.cuda.LongTensor if x.is_cuda else torch.LongTensor
-        ByteTensor = torch.cuda.ByteTensor if x.is_cuda else torch.ByteTensor
         # Get feature map grid info.
         self.img_dim = img_dim  # (N,C,H,W)
         num_samples = x.size(0)
@@ -116,7 +113,7 @@ class YOLOLayer(nn.Module):
             return output, 0
         # Get targets and calculate loss if in training mode
         else:
-            loss_loc, loss_conf, loss_cls = self.loss(output, targets, (x,y,w,h), self.scaled_anchors)
+            loss_loc, loss_conf, loss_cls = self.loss(output, targets, (x, y, w, h), self.scaled_anchors)
             total_loss = loss_loc + loss_conf + loss_cls
             self.metrics = self.loss.metrics
             self.metrics["grid_size"] = grid_size

@@ -8,9 +8,6 @@ from yolov4.models.utils import create_modules
 from yolov4.utils import to_cpu
 from yolov4.parse_config import parse_model_config
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
 
 class Darknet(nn.Module):
     """YOLOv3 object detection model"""
@@ -83,25 +80,25 @@ class Darknet(nn.Module):
                     bn_layer = module[1]
                     num_b = bn_layer.bias.numel()  # Number of biases
                     # Bias
-                    bn_b = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                    bn_b = torch.from_numpy(weights[ptr: ptr + num_b]).view_as(
                         bn_layer.bias
                     )
                     bn_layer.bias.data.copy_(bn_b)
                     ptr += num_b
                     # Weight
-                    bn_w = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                    bn_w = torch.from_numpy(weights[ptr: ptr + num_b]).view_as(
                         bn_layer.weight
                     )
                     bn_layer.weight.data.copy_(bn_w)
                     ptr += num_b
                     # Running Mean
-                    bn_rm = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                    bn_rm = torch.from_numpy(weights[ptr: ptr + num_b]).view_as(
                         bn_layer.running_mean
                     )
                     bn_layer.running_mean.data.copy_(bn_rm)
                     ptr += num_b
                     # Running Var
-                    bn_rv = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                    bn_rv = torch.from_numpy(weights[ptr: ptr + num_b]).view_as(
                         bn_layer.running_var
                     )
                     bn_layer.running_var.data.copy_(bn_rv)
@@ -109,14 +106,14 @@ class Darknet(nn.Module):
                 else:
                     # Load conv. bias
                     num_b = conv_layer.bias.numel()
-                    conv_b = torch.from_numpy(weights[ptr : ptr + num_b]).view_as(
+                    conv_b = torch.from_numpy(weights[ptr: ptr + num_b]).view_as(
                         conv_layer.bias
                     )
                     conv_layer.bias.data.copy_(conv_b)
                     ptr += num_b
                 # Load conv. weights
                 num_w = conv_layer.weight.numel()
-                conv_w = torch.from_numpy(weights[ptr : ptr + num_w]).view_as(
+                conv_w = torch.from_numpy(weights[ptr: ptr + num_w]).view_as(
                     conv_layer.weight
                 )
                 conv_layer.weight.data.copy_(conv_w)
